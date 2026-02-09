@@ -1,0 +1,8 @@
+[
+    {
+        "name" : "Administrador con poca experiencia prueba listar tramites activos",
+        "actor" : "Administrador con poca experiencia en el sistema y que no sabe escribir un prompt efectivo",
+        "action" : "Envia un mensaje al chat para probar la funcionalida de listar los tramites activos",
+        "expected" : "El chatbot responde con una lista de los tramites activos en el sistema y una breve descripcion de cada uno"
+    }
+]
