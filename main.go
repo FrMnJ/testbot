@@ -38,7 +38,7 @@ func main() {
 Actor: %s
 Action: %s
 
-The message should be a natural language message that a user would send in the chatbot app based on the given scenario. In spanish.`, input.Actor, input.Action)
+The message should be a natural language message that a user would send in the chatbot app based on the given scenario. In the language or the actor and action.`, input.Actor, input.Action)
 
 		message, _, err := genkit.GenerateData[Messsage](ctx, g,
 			ai.WithPrompt(prompt),
@@ -64,7 +64,7 @@ Message:
 Response:
 %s
 
-Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide detailed feedback explaining the score and how the response could be improved in spanish.`, scenario.Actor, scenario.Action, scenario.Message, scenario.Response)
+Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide detailed feedback explaining the score and how the response could be improved in the language of the actor and action.`, scenario.Actor, scenario.Action, scenario.Message, scenario.Response)
 
 		score, _, err := genkit.GenerateData[Score](ctx, g,
 			ai.WithPrompt(prompt),
