@@ -16,6 +16,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const defaultWebsocketTimeout = 20 * time.Second
+
 type ScenarioDefinition struct {
 	ID       int      `json:"id" jsonschema:"description=The unique identifier for the scenario, used for tracking and referencing specific test cases."`
 	Roles    []string `json:"roles" jsonschema:"description=The role in the scenario, representing the user persona in the app or personas."`
@@ -176,6 +178,21 @@ func SendMessage(ctx context.Context, message, token string) (*Response, error) 
 	}
 	defer c.Close()
 
+	cancelWatcherDone := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = c.Close()
+		case <-cancelWatcherDone:
+		}
+	}()
+	defer close(cancelWatcherDone)
+
+	deadline, hasDeadline := ctx.Deadline()
+	if !hasDeadline {
+		deadline = time.Now().Add(defaultWebsocketTimeout)
+	}
+
 	payload := map[string]any{
 		"type": "user_message",
 		"payload": map[string]string{
@@ -189,9 +206,21 @@ func SendMessage(ctx context.Context, message, token string) (*Response, error) 
 		return nil, err
 	}
 
+	err = c.SetWriteDeadline(deadline)
+	if err != nil {
+		log.Println("Error setting websocket write deadline:", err)
+		return nil, err
+	}
+
 	err = c.WriteMessage(websocket.BinaryMessage, payloadBytes)
 	if err != nil {
 		log.Println("Error sending message over websocket:", err)
+		return nil, err
+	}
+
+	err = c.SetReadDeadline(deadline)
+	if err != nil {
+		log.Println("Error setting websocket read deadline:", err)
 		return nil, err
 	}
 

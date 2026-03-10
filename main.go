@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -19,7 +22,8 @@ func main() {
 		return
 	}
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	cfg, err = LoadConfig()
 	if err != nil {
@@ -87,10 +91,19 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 	}
 	var scores []Score
 
-	for _, scenario := range scenarios {
-		score, err := reviewerFlow.Run(ctx, &scenario)
+	for i := 0; i < len(scenarios); i++ {
+		if err := ctx.Err(); err != nil {
+			log.Println("Execution interrupted, stopping scenarios:", err)
+			break
+		}
+
+		score, err := reviewerFlow.Run(ctx, &scenarios[i])
 		if err != nil {
-			log.Printf("Error running scenario '%s': %v\n", scenario.Action, err)
+			if ctx.Err() != nil {
+				log.Println("Execution interrupted while running scenario")
+				break
+			}
+			log.Printf("Error running scenario '%s': %v\n", scenarios[i].Action, err)
 			continue
 		}
 		scores = append(scores, *score)
