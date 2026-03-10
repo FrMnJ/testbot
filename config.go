@@ -9,12 +9,14 @@ var (
 	ErrMissingModel        error = fmt.Errorf("MODEL is required (or set GENKIT_MODEL)")
 	ErrMissingWebsocketURL error = fmt.Errorf("WEBSOCKET_URL is required")
 	ErrMissingUserJWT      error = fmt.Errorf("USER_JWT is required")
+	ErrMissingDatabaseURL  error = fmt.Errorf("DATABASE_URL is required")
 )
 
 type Config struct {
 	UserJWT      string
 	WebsocketURL string
 	Model        string
+	DatabaseURL  string
 }
 
 var cfg *Config
@@ -29,6 +31,7 @@ func LoadConfig() (*Config, error) {
 		UserJWT:      getEnv("USER_JWT", ""),
 		WebsocketURL: getEnv("WEBSOCKET_URL", ""),
 		Model:        model,
+		DatabaseURL:  getEnv("DATABASE_URL", ""),
 	}
 
 	err := validateConfig(cfg)
@@ -50,6 +53,10 @@ func validateConfig(cfg *Config) error {
 
 	if cfg.UserJWT == "" {
 		return ErrMissingUserJWT
+	}
+
+	if cfg.DatabaseURL == "" {
+		return ErrMissingDatabaseURL
 	}
 	return nil
 }

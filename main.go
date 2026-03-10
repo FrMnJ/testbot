@@ -36,9 +36,9 @@ func main() {
 		prompt := fmt.Sprintf(`Generate a message given that you are a user in chatbot app with capabilities to read data from the app. 
 		Such as read docs, read tramites and read processes. The message should be based on the following scenario:
 Actor: %s
-Action: %s
+Action: The user wants to ask %s
 
-The message should be a natural language message that a user would send in the chatbot app based on the given scenario. In the language or the actor and action.`, input.Actor, input.Action)
+The message should be a natural language message that a user would send in the chatbot app based on the given scenario. In the language of the actor and action.`, input.Roles[0], input.Action)
 
 		message, _, err := genkit.GenerateData[Messsage](ctx, g,
 			ai.WithPrompt(prompt),
@@ -56,7 +56,7 @@ The message should be a natural language message that a user would send in the c
 		prompt := fmt.Sprintf(`You are an evaluator for a chatbot app. Evaluate the following response based on the scenario and message provided.
 Scenario:
 Actor: %s
-Action: %s
+Action: The user wants to ask %s
 
 Message:
 %s
@@ -64,7 +64,7 @@ Message:
 Response:
 %s
 
-Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide detailed feedback explaining the score and how the response could be improved in the language of the actor and action.`, scenario.Actor, scenario.Action, scenario.Message, scenario.Response)
+Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide detailed feedback explaining the score and how the response could be improved in the language of the actor and action.`, scenario.Roles[0], scenario.Action, scenario.Message, scenario.Response)
 
 		score, _, err := genkit.GenerateData[Score](ctx, g,
 			ai.WithPrompt(prompt),
@@ -90,7 +90,7 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 	for _, scenario := range scenarios {
 		score, err := reviewerFlow.Run(ctx, &scenario)
 		if err != nil {
-			log.Printf("Error running scenario '%s': %v\n", scenario.Name, err)
+			log.Printf("Error running scenario '%s': %v\n", scenario.Action, err)
 			continue
 		}
 		scores = append(scores, *score)
