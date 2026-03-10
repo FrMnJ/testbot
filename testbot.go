@@ -124,7 +124,7 @@ func NewReviewerFlow(ctx context.Context,
 func ReadScenarios() ([]ScenarioDefinition, error) {
 	db, err := sql.Open("mysql", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
+		log.Printf("Error connecting to database: %v", err)
 		return nil, err
 	}
 	defer db.Close()
@@ -135,7 +135,7 @@ func ReadScenarios() ([]ScenarioDefinition, error) {
 	var scenarios []ScenarioDefinition
 	rows, err := db.QueryContext(ctx, "SELECT id, titulo, contenido_md, roles FROM documentaciones")
 	if err != nil {
-		log.Fatalf("Error querying database: %v", err)
+		log.Printf("Error querying database: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -151,6 +151,10 @@ func ReadScenarios() ([]ScenarioDefinition, error) {
 		err = json.Unmarshal([]byte(rolesJSON), &s.Roles)
 		if err != nil {
 			log.Printf("Error unmarshalling roles: %v", err)
+			continue
+		}
+		if len(s.Roles) == 0 {
+			log.Printf("No roles defined for scenario ID %d, skipping", s.ID)
 			continue
 		}
 		token, err := auth.GenerateTokenForScenario(s.Roles[0], cfg.JWTSecret)
@@ -238,6 +242,10 @@ func SummarizeScores(scores []Score) {
 		if score.IsSuccess {
 			totalSuccess++
 		}
+	}
+	if len(scores) == 0 {
+		fmt.Println("No scores to summarize.")
+		return
 	}
 	averageScore := float64(totalScore) / float64(len(scores))
 	fmt.Printf("Average Score: %.2f\n", averageScore)
