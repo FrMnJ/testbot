@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/FrMnJ/testbot/internal/config"
+	"github.com/FrMnJ/testbot/pkg/testbot"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/firebase/genkit/go/plugins/googlegenai"
@@ -25,7 +27,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	cfg, err = LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Println("Failed to load config:", err)
 		return
@@ -36,7 +38,7 @@ func main() {
 		genkit.WithDefaultModel(cfg.Model),
 	)
 
-	messageGeneratorFlow := genkit.DefineFlow(g, "messageGeneratorFlow", func(ctx context.Context, input *GenerateMessage) (*Messsage, error) {
+	messageGeneratorFlow := genkit.DefineFlow(g, "messageGeneratorFlow", func(ctx context.Context, input *testbot.GenerateMessage) (*testbot.Messsage, error) {
 		prompt := fmt.Sprintf(`Generate a message given that you are a user in chatbot app with capabilities to read data from the app. 
 		Such as read docs, read tramites and read processes. The message should be based on the following scenario:
 Actor: %s
@@ -44,7 +46,7 @@ Action: The user wants to ask %s
 
 The message should be a natural language message that a user would send in the chatbot app based on the given scenario. In the language of the actor and action.`, input.Roles[0], input.Action)
 
-		message, _, err := genkit.GenerateData[Messsage](ctx, g,
+		message, _, err := genkit.GenerateData[testbot.Messsage](ctx, g,
 			ai.WithPrompt(prompt),
 		)
 
@@ -56,7 +58,7 @@ The message should be a natural language message that a user would send in the c
 		return message, nil
 	})
 
-	evaluatorFlow := genkit.DefineFlow(g, "evaluatorFlow", func(ctx context.Context, scenario *ScenarioDefinition) (*Score, error) {
+	evaluatorFlow := genkit.DefineFlow(g, "evaluatorFlow", func(ctx context.Context, scenario *testbot.ScenarioDefinition) (*testbot.Score, error) {
 		prompt := fmt.Sprintf(`You are an evaluator for a chatbot app. Evaluate the following response based on the scenario and message provided.
 Scenario:
 Actor: %s
@@ -70,7 +72,7 @@ Response:
 
 Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide concise feedback explaining the score and how the response could be improved in the language of the actor and action.`, scenario.Roles[0], scenario.Action, scenario.Message, scenario.Response)
 
-		score, _, err := genkit.GenerateData[Score](ctx, g,
+		score, _, err := genkit.GenerateData[testbot.Score](ctx, g,
 			ai.WithPrompt(prompt),
 		)
 
@@ -82,16 +84,18 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 		return score, nil
 	})
 
-	reviewerFlow := NewReviewerFlow(ctx, g, messageGeneratorFlow, evaluatorFlow, SendMessage)
+	reviewerFlow := testbot.NewReviewerFlow(ctx, g, messageGeneratorFlow, evaluatorFlow, testbot.SendMessage, cfg)
 
-	scenarios, err := ReadScenarios()
+	scenarios, err := testbot.ReadScenarios(cfg)
 	if err != nil {
 		log.Println("Failed to read scenarios:", err)
 		return
 	}
-	var scores []Score
+	var scores []testbot.Score
 
+	scenarios = scenarios[60:100]
 	for i := 0; i < len(scenarios); i++ {
+		log.Printf("Scenario: %s \nActor: %s", scenarios[i].Action, scenarios[i].Roles[0])
 		if err := ctx.Err(); err != nil {
 			log.Println("Execution interrupted, stopping scenarios:", err)
 			break
@@ -109,6 +113,10 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 		scores = append(scores, *score)
 	}
 
-	SaveScores(scores)
-	SummarizeScores(scores)
+	testbot.SaveScores(scores)
+	err = testbot.SaveScenarios(scenarios)
+	if err != nil {
+		log.Println("Error saving scenarios:", err)
+	}
+	testbot.SummarizeScores(scores)
 }
