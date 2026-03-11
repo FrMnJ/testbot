@@ -68,7 +68,7 @@ Message:
 Response:
 %s
 
-Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide detailed feedback explaining the score and how the response could be improved in the language of the actor and action.`, scenario.Roles[0], scenario.Action, scenario.Message, scenario.Response)
+Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide concise feedback explaining the score and how the response could be improved in the language of the actor and action.`, scenario.Roles[0], scenario.Action, scenario.Message, scenario.Response)
 
 		score, _, err := genkit.GenerateData[Score](ctx, g,
 			ai.WithPrompt(prompt),
