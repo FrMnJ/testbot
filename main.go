@@ -91,9 +91,9 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 		log.Println("Failed to read scenarios:", err)
 		return
 	}
-	var scores []testbot.Score
+	var results []testbot.ResultScenario
 
-	scenarios = scenarios[60:100]
+	scenarios = scenarios[40:60]
 	for i := 0; i < len(scenarios); i++ {
 		log.Printf("Scenario: %s \nActor: %s", scenarios[i].Action, scenarios[i].Roles[0])
 		if err := ctx.Err(); err != nil {
@@ -110,13 +110,19 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 			log.Printf("Error running scenario '%s': %v\n", scenarios[i].Action, err)
 			continue
 		}
-		scores = append(scores, *score)
+		results = append(results, testbot.ResultScenario{
+			ID:        scenarios[i].ID,
+			Question:  scenarios[i].Message,
+			Response:  scenarios[i].Response,
+			Score:     score.Score,
+			IsSuccess: score.Score >= 3,
+			Feedback:  score.Feedback,
+		})
+		log.Printf("Score for scenario '%s': %d\n", scenarios[i].Action, score.Score)
 	}
 
-	testbot.SaveScores(scores)
-	err = testbot.SaveScenarios(scenarios)
+	err = testbot.SaveResultScenarios(results)
 	if err != nil {
 		log.Println("Error saving scenarios:", err)
 	}
-	testbot.SummarizeScores(scores)
 }

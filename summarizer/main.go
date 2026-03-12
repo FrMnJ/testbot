@@ -9,12 +9,11 @@ import (
 )
 
 func main() {
-	var scenarios []testbot.Score
+	var scenarios []testbot.ResultScenario
 
-	parts := []string{"scores_part_1.json", "scores_part_2.json", "scores_part_3.json", "scores_part_4.json"}
-
+	parts := []string{"results_part_1.json", "results_part_2.json", "results_part_3.json"}
 	for _, part := range parts {
-		scenariosPart, err := LoadScenarios(part)
+		scenariosPart, err := LoadResultScenarios(part)
 		if err != nil {
 			log.Printf("Error loading scenarios from %s: %v", part, err)
 			continue
@@ -38,14 +37,14 @@ func main() {
 	log.Printf("Success Rate: %.2f%%", succesRate)
 }
 
-func LoadScenarios(part string) ([]testbot.Score, error) {
+func LoadResultScenarios(part string) ([]testbot.ResultScenario, error) {
 	file, err := os.ReadFile(part)
 	if err != nil {
 		log.Printf("Error reading scenarios file %s: %v", part, err)
 		return nil, err
 	}
 
-	var scenarios []testbot.Score
+	var scenarios []testbot.ResultScenario
 	err = json.Unmarshal(file, &scenarios)
 	if err != nil {
 		log.Printf("Error unmarshalling scenarios from file %s: %v", part, err)
