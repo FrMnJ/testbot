@@ -11,7 +11,7 @@ import (
 func main() {
 	var scenarios []testbot.ResultScenario
 
-	parts := []string{"results_part_1.json", "results_part_2.json", "results_part_3.json"}
+	parts := []string{"results.json"}
 	for _, part := range parts {
 		scenariosPart, err := LoadResultScenarios(part)
 		if err != nil {
@@ -23,15 +23,22 @@ func main() {
 
 	totalSuccess := 0
 	scoreTotal := 0.0
+	numToolsCalled := 0
 	for _, score := range scenarios {
 		scoreTotal += float64(score.Score)
 		if score.IsSuccess {
 			totalSuccess++
 		}
+		if score.CallTool {
+			numToolsCalled++
+		}
 	}
 
 	averageScore := scoreTotal / float64(len(scenarios))
 	log.Printf("Average Score: %.2f", averageScore)
+	
+	toolRate := float64(numToolsCalled) / float64(len(scenarios)) * 100
+	log.Printf("Tool Call Rate: %.2f%%", toolRate)
 
 	succesRate := float64(totalSuccess) / float64(len(scenarios)) * 100
 	log.Printf("Success Rate: %.2f%%", succesRate)

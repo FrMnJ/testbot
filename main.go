@@ -59,18 +59,44 @@ The message should be a natural language message that a user would send in the c
 	})
 
 	evaluatorFlow := genkit.DefineFlow(g, "evaluatorFlow", func(ctx context.Context, scenario *testbot.ScenarioDefinition) (*testbot.Score, error) {
-		prompt := fmt.Sprintf(`You are an evaluator for a chatbot app. Evaluate the following response based on the scenario and message provided.
+		prompt := fmt.Sprintf(`You are an evaluator for a chatbot application.
+
+Evaluate the response produced by the assistant based on the given scenario.
+
 Scenario:
 Actor: %s
 Action: The user wants to ask %s
 
-Message:
+User Message:
 %s
 
-Response:
+Assistant Response:
 %s
 
-Score the response on a scale of 0 to 5, where 0 means the response is completely incorrect and 5 means it is perfect. Provide concise feedback explaining the score and how the response could be improved in the language of the actor and action.`, scenario.Roles[0], scenario.Action, scenario.Message, scenario.Response)
+The model made tool calls: %v
+
+Evaluation Instructions:
+
+Score the response on a scale from 0 to 5:
+
+0 = Completely incorrect or irrelevant  
+1 = Mostly incorrect  
+2 = Partially correct but with major issues  
+3 = Neutral / information not available  
+4 = Good response with minor issues  
+5 = Perfect response
+
+Important rules:
+
+If the assistant indicates that the information was not found or says something equivalent to "No cuento con suficiente información para responder eso", assign a score of **3 (neutral)**.
+
+If the model made tool calls but the response does not yet contain the final information, **do not penalize the score**. In this case assign a score of **3**.
+
+Provide concise feedback explaining:
+- Why the score was given
+- How the response could be improved
+
+Write the feedback in the same language used by the actor and action.`, scenario.Roles[0], scenario.Action, scenario.Message, scenario.Response, scenario.CallTool)
 
 		score, _, err := genkit.GenerateData[testbot.Score](ctx, g,
 			ai.WithPrompt(prompt),
@@ -93,7 +119,6 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 	}
 	var results []testbot.ResultScenario
 
-	scenarios = scenarios[40:60]
 	for i := 0; i < len(scenarios); i++ {
 		log.Printf("Scenario: %s \nActor: %s", scenarios[i].Action, scenarios[i].Roles[0])
 		if err := ctx.Err(); err != nil {
@@ -117,6 +142,7 @@ Score the response on a scale of 0 to 5, where 0 means the response is completel
 			Score:     score.Score,
 			IsSuccess: score.Score >= 3,
 			Feedback:  score.Feedback,
+			CallTool:  scenarios[i].CallTool,
 		})
 		log.Printf("Score for scenario '%s': %d\n", scenarios[i].Action, score.Score)
 	}
